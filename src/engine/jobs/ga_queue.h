@@ -58,8 +58,8 @@ public:
 
 	void push(void* data);
 	bool pop(void** data);
-	bool compareNode(Node* oldNode, Node* newNode);
-	bool CAS(Node* addr, Node* oldNode, Node* newNode);
+	//bool compareNode(Node* oldNode, Node* newNode);
+	bool CAS(Node** addr, Node* oldNode, Node* newNode);
 	int get_count() const;
 
 private:

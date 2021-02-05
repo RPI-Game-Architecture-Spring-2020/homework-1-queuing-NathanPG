@@ -14,47 +14,6 @@ using namespace std;
 mutex Head_Mutex;
 mutex Tail_Mutex;
 
-bool ga_queue::compareNode(Node* oldNode, Node* newNode) {
-	if (oldNode == NULL) {
-		if (newNode == NULL) {
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
-
-	if (oldNode->getData() == NULL) {
-		if (newNode->getData() == NULL) {
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
-
-	if (oldNode->getNext() == NULL) {
-		if (newNode->getNext() == NULL) {
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
-
-	if (oldNode->getData() == newNode->getData() && oldNode->getNext() == newNode->getNext()) {
-		return true;
-	}
-	return false;
-}
-
-bool ga_queue::CAS(Node* addr, Node* oldNode, Node* newNode) {
-	if (compareNode(addr, oldNode) == false) {
-		return false;
-	}
-	addr = newNode;
-	return true;
-}
 
 ga_queue::ga_queue(int node_count)
 {
@@ -92,6 +51,7 @@ ga_queue::~ga_queue()
 	Head_Mutex.unlock();
 }
 
+//Basic Requirements
 void ga_queue::push(void* data)
 {
 	// TODO:
@@ -138,10 +98,6 @@ bool ga_queue::pop(void** data)
 	return true;
 }
 
-
-
-
-
 int ga_queue::get_count() const
 {
 	// TODO:
@@ -149,32 +105,38 @@ int ga_queue::get_count() const
 	return _node_count;
 }
 
+
+//Extra credit - threading bug...
 /*
+bool ga_queue::CAS(Node** addr, Node* oldNode, Node* newNode) {
+	if (*addr != oldNode) {
+		return false;
+	}
+	*addr = newNode;
+	if (oldNode != NULL) {
+		oldNode->setNext(*addr);
+	}
+	return true;
+}
+
 bool ga_queue::pop(void** data)
 {
-	// TODO:
-	// Pop one element off the queue in a thread-safe manner and place it in
-	// the memory pointed to by 'data'.
-	// If the queue is empty when this function is called, return false.
-	// Otherwise return true.
-	// See https://www.research.ibm.com/people/m/michael/podc-1996.pdf
 	Node* head;
-
 	while (true)
 	{
 		head = Head;
 		Node* tail = Tail;
 		Node* next = head->getNext();
-		if (compareNode(head, Head)) {
-			if (compareNode(head, tail)) {
+		if (head == Head) {
+			if (head == tail) {
 				if (next == NULL) {
 					return false;
 				}
-				CAS(Tail, tail, next);
+				CAS(&Tail, tail, next);
 			}
 			else {
-				void* pvalue = next->getData();
-				if (CAS(Head, head, next)) {
+				*data = next->getData();
+				if (CAS(&Head, head, next)) {
 					break;
 				}
 			}
@@ -187,14 +149,6 @@ bool ga_queue::pop(void** data)
 
 void ga_queue::push(void* data)
 {
-	// TODO:
-	// Push 'data' onto the queue in a thread-safe manner.
-	// If you preallocated 'node_count' elements, and if the queue is full when
-	// this function is called, you must block until another thread pops an
-	// element off the queue.
-	// See https://www.research.ibm.com/people/m/michael/podc-1996.pdf
-
-
 	Node* node = new Node();
 	node->setValue(data);
 	node->setNext(NULL);
@@ -203,19 +157,19 @@ void ga_queue::push(void* data)
 	{
 		tail = Tail;
 		Node* next = tail->getNext();
-		if (compareNode(tail, Tail)) {
+		if (tail == Tail) {
 			if (next == NULL) {
-				if (CAS(tail->getNext(), next, node)) {
+				Node* tmp = tail->getNext();
+				if (CAS(&tmp, next, node)) {
 					break;
 				}
 			}
 			else {
-				CAS(Tail, tail, next);
+				CAS(&Tail, tail, next);
 			}
 		}
 	}
-	CAS(Tail, tail, node);
+	CAS(&Tail, tail, node);
 	_node_count++;
 }
-
 */
