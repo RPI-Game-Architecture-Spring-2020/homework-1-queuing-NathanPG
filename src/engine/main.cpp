@@ -18,6 +18,7 @@
 
 int main(int argc, const char** argv)
 {
+	
 	ga_job::startup(0xffff, 256, 256);
 
 	// Create objects for three phases of the frame: input, sim and output.
@@ -64,5 +65,7 @@ int main(int argc, const char** argv)
 
 	ga_job::shutdown();
 
+
+	
 	return 0;
 }
