@@ -9,11 +9,18 @@
 
 #include "ga_queue.h"
 #include <mutex>
+#include <atomic>
 using namespace std;
 
 mutex Head_Mutex;
 mutex Tail_Mutex;
 
+int ga_queue::get_count() const
+{
+	// TODO:
+	// Get the number of elements currently in the queue.
+	return _node_count;
+}
 
 ga_queue::ga_queue(int node_count)
 {
@@ -33,6 +40,7 @@ ga_queue::ga_queue(int node_count)
 
 ga_queue::~ga_queue()
 {
+#ifndef NONBLOCKING
 	// TODO:
 	// Free any resources held by the queue.
 	// See https://www.research.ibm.com/people/m/michael/podc-1996.pdf
@@ -49,9 +57,19 @@ ga_queue::~ga_queue()
 	free(Head);
 	free(Tail);
 	Head_Mutex.unlock();
+#endif // !NONBLOCKING
+
+#ifdef NONBLOCKING
+
+#endif // NONBLOCKING
+
+	
 }
 
+#ifndef NONBLOCKING
 //Basic Requirements
+
+
 void ga_queue::push(void* data)
 {
 	// TODO:
@@ -97,15 +115,9 @@ bool ga_queue::pop(void** data)
 	free(node);
 	return true;
 }
+#endif // BLOCKING
 
-int ga_queue::get_count() const
-{
-	// TODO:
-	// Get the number of elements currently in the queue.
-	return _node_count;
-}
-
-
+#ifdef NONBLOCKING
 //Extra credit - threading bug...
 /*
 bool ga_queue::CAS(Node** addr, Node* oldNode, Node* newNode) {
@@ -118,7 +130,7 @@ bool ga_queue::CAS(Node** addr, Node* oldNode, Node* newNode) {
 	}
 	return true;
 }
-
+*/
 bool ga_queue::pop(void** data)
 {
 	Node* head;
@@ -132,11 +144,16 @@ bool ga_queue::pop(void** data)
 				if (next == NULL) {
 					return false;
 				}
-				CAS(&Tail, tail, next);
+				Tail.compare_exchange_strong(tail, next);
 			}
 			else {
+
+				if (next == NULL) {
+					return false;
+				}
+
 				*data = next->getData();
-				if (CAS(&Head, head, next)) {
+				if (Head.compare_exchange_strong(head, next)) {
 					break;
 				}
 			}
@@ -159,17 +176,18 @@ void ga_queue::push(void* data)
 		Node* next = tail->getNext();
 		if (tail == Tail) {
 			if (next == NULL) {
-				Node* tmp = tail->getNext();
-				if (CAS(&tmp, next, node)) {
+				atomic<Node*> tmp = tail->getNext();
+				if (tmp.compare_exchange_strong(next, node)) {
 					break;
 				}
 			}
 			else {
-				CAS(&Tail, tail, next);
+				Tail.compare_exchange_strong(tail, next);
 			}
 		}
 	}
-	CAS(&Tail, tail, node);
+	Tail.compare_exchange_strong(tail, node);
+	tail->setNext(node);
 	_node_count++;
 }
-*/
+#endif // NONBLOCKING

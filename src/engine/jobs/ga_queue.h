@@ -13,6 +13,8 @@
 ** Thread-safe queue.
 ** https://www.research.ibm.com/people/m/michael/podc-1996.pdf
 */
+#include <atomic>
+using namespace std;
 
 class ga_queue
 {
@@ -59,14 +61,23 @@ public:
 	void push(void* data);
 	bool pop(void** data);
 	//bool compareNode(Node* oldNode, Node* newNode);
-	bool CAS(Node** addr, Node* oldNode, Node* newNode);
+	//bool CAS(Node** addr, Node* oldNode, Node* newNode);
 	int get_count() const;
 
 private:
 	int _node_count = 0;
 	int max_count = 0;
+#ifndef NONBLOCKING
 	Node* Head;
 	Node* Tail;
+#endif // BLOCKING
+	
+#ifdef NONBLOCKING
+	atomic<Node*> Head;
+	atomic<Node*> Tail;
+#endif // NONBLOCKING
+
+	
 };
 
 
